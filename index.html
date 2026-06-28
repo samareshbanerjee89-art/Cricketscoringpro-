@@ -69,12 +69,13 @@ body{
 
 .dh-bar{
   background:linear-gradient(90deg,#040b16,#0a1828,#040b16);border-bottom:2px solid var(--accent);
-  padding:10px 28px;display:flex;align-items:center;justify-content:space-between;
+  padding:5px 20px;display:flex;align-items:center;justify-content:space-between;
+  overflow:hidden;min-height:32px;flex-wrap:nowrap;
 }
-.dh-live{display:flex;align-items:center;gap:10px;font-family:'Orbitron',sans-serif;font-size:15px;letter-spacing:4px;color:var(--red);}
-.dh-dot{width:11px;height:11px;border-radius:50%;background:var(--red);animation:pulse 1.4s infinite;}
+.dh-live{display:flex;align-items:center;gap:6px;font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:2px;color:var(--red);white-space:nowrap;}
+.dh-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1.4s infinite;flex-shrink:0;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
-.dh-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--muted);}
+.dh-title{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:600px;}
 
 .sb-main{padding:30px 36px;}
 .sb-teams{display:grid;grid-template-columns:2fr auto 1fr;align-items:center;gap:20px;margin-bottom:26px;}
@@ -128,11 +129,12 @@ body{
 .sb-info-lbl{font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;}
 .sb-info-val{font-family:'Orbitron',sans-serif;font-size:18px;color:var(--white);font-weight:700;margin-top:4px;}
 
-.ov-strip{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;}
-.ov-lbl-txt{text-align:center;font-size:15px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;}
-.ov-bowler-row{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:12px;}
+.ov-strip,.ov-balls-wrap{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:4px;}
+.ov-lbl-txt{text-align:center;font-size:var(--ov-lbl-size,15px);color:var(--ov-lbl-color,var(--muted));letter-spacing:1px;margin-bottom:8px;}
+.ov-bowler-row{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:14px;margin-bottom:12px;flex-wrap:nowrap;}
 .ov-bowler-row .ov-lbl-txt{margin-bottom:0;}
-.ov-bowler-name{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;color:var(--white);}
+.ov-bowler-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--white);white-space:nowrap;flex-shrink:0;}
+.ov-balls-wrap{display:flex;gap:8px;flex-wrap:wrap;}
 .ov-ball{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   font-family:'Orbitron',sans-serif;font-weight:700;font-size:15px;background:var(--panel2);border:3px solid var(--border);color:var(--muted);}
 .ov-ball.run-0{color:var(--muted);}
@@ -271,6 +273,7 @@ body{
 /* SCROLLING TICKER */
 .ticker-bar{display:none;background:linear-gradient(90deg,#001428,#002040,#001428);border-top:1px solid var(--accent);height:36px;overflow:hidden;align-items:center;}
 .ticker-bar.show{display:flex;}
+#fit-wrap.has-ticker{margin-bottom:36px;}
 .ticker-track{position:relative;width:100%;overflow:hidden;height:36px;}
 .ticker-text{display:inline-block;white-space:nowrap;font-size:15px;color:var(--white);letter-spacing:.5px;position:absolute;top:50%;transform:translateY(-50%);will-change:transform;}
 /* COMPARE GRAPH — hidden everywhere, shown ONLY in compare view */
@@ -361,10 +364,10 @@ body{
       </div>
 
       <div class="ov-bowler-row">
-        <div class="ov-lbl-txt dyn-label" id="ov-lbl">Over 1</div>
         <div class="ov-bowler-name" id="ov-bowler-name">–</div>
+        <div class="ov-lbl-txt dyn-label" id="ov-lbl">Over 1</div>
+        <div class="ov-balls-wrap" id="over-balls"></div>
       </div>
-      <div class="ov-strip" id="over-balls"></div>
 
       <div class="sc-cols">
         <div class="sc-section">
@@ -618,11 +621,13 @@ function fitToScreen(){
   const scaleY = screenH / designH;
   const baseScale = Math.min(scaleX, scaleY);
 
-  // Manual user offset (from +/- buttons)
-  const offset = manualScaleOffset || 0;
-  const finalScale = Math.max(0.3, baseScale + offset);
+  // Manual user fit from scorer app width/height sliders (100 = base, >100 = larger)
+  const mfx = manualFit && manualFit.scaleX ? manualFit.scaleX / 100 : 1;
+  const mfy = manualFit && manualFit.scaleY ? manualFit.scaleY / 100 : 1;
+  const finalScaleX = Math.max(0.2, baseScale * mfx);
+  const finalScaleY = Math.max(0.2, baseScale * mfy);
 
-  wrap.style.transform = 'translate(-50%,-50%) scale(' + finalScale + ')';
+  wrap.style.transform = 'translate(-50%,-50%) scale(' + finalScaleX + ',' + finalScaleY + ')';
 }
 
 function handleLiveEvents(data){
@@ -761,12 +766,13 @@ function applyDisplayStyle(s){
   if(s.bold) css += '.sb-name,.sb-score,.sb-target-val,.sbr-name{font-weight:900 !important;}';
   if(s.italic) css += '.sb-name,.sb-score,.sb-target-val,.sbr-name{font-style:italic !important;}';
   // Fixed labels — Over / Partnership / Last Wkt / Extras / RRR / CRR / Target
-  if(s.labelColor) css += '.dyn-label{color:'+s.labelColor+' !important;}';
+  if(s.labelColor) css += '.dyn-label{color:'+s.labelColor+' !important;}:root{--ov-lbl-color:'+s.labelColor+';}' ;
   if(s.labelFont) css += '.dyn-label{font-family:'+s.labelFont+' !important;}';
   if(s.labelSizePct){
     const lsc = s.labelSizePct/100;
     css += '.sb-info-lbl,.sb-crr-lbl{font-size:'+(lsc*11)+'px !important;}';
     css += '.ov-lbl-txt{font-size:'+(lsc*15)+'px !important;}';
+    css += ':root{--ov-lbl-size:'+(lsc*15)+'px;}';
     css += '.sb-target-lbl{font-size:'+(lsc*13)+'px !important;}';
   }
   if(s.labelBold) css += '.dyn-label{font-weight:900 !important;}';
@@ -1180,6 +1186,8 @@ function applyTicker(data){
       _tickerX = window.innerWidth + 10; // always restart from right
     }
     bar.style.display = 'block';
+    const fw1 = document.getElementById('fit-wrap');
+    if(fw1) fw1.classList.add('has-ticker');
     if(!_tickerActive){
       _tickerActive = true;
       if(_tickerRAF) cancelAnimationFrame(_tickerRAF);
@@ -1190,6 +1198,8 @@ function applyTicker(data){
     _tickerTxt = '';
     if(_tickerRAF){ cancelAnimationFrame(_tickerRAF); _tickerRAF = null; }
     bar.style.display = 'none';
+    const fw2 = document.getElementById('fit-wrap');
+    if(fw2) fw2.classList.remove('has-ticker');
   }
 }
 // COMPARE GRAPH
